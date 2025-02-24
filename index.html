@@ -26,9 +26,12 @@
 <body>
     <h1>Nature Sound Translator</h1>
     <button id="recordBtn">🎙 Start Recording</button>
-    <p id="translation">Translation will appear here...</p><script>
+    <p id="translation">Translation will appear here...</p>
+    
+    <script>
     let mediaRecorder;
     let audioChunks = [];
+    let backendURL = "https://nature-sound-translator.onrender.com"; // Replace with your actual Render backend URL
 
     document.getElementById("recordBtn").addEventListener("click", async () => {
         if (!mediaRecorder) {
@@ -44,7 +47,7 @@
                 let formData = new FormData();
                 formData.append("audio", audioBlob);
                 
-                let response = await fetch("/translate", { method: "POST", body: formData });
+                let response = await fetch(backendURL + "/translate", { method: "POST", body: formData });
                 let result = await response.text();
                 document.getElementById("translation").innerText = result;
             };
@@ -59,7 +62,7 @@
             document.getElementById("recordBtn").innerText = "🎙 Start Recording";
         }
     });
-</script>
-
+    </script>
 </body>
-  </html>
+</html>
+

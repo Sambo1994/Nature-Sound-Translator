@@ -1,68 +1,93 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nature Sound Translator</title>
+    <title>Strange App - Audio to Binary to Text</title>
     <style>
         body {
-            font-family: 'Courier New', monospace;
+            font-family: 'Courier New', Courier, monospace;
             text-align: center;
-            background-image: url('background.jpg');
+            background-image: url('https://images.pexels.com/photos/7736104/pexels-photo-7736104.jpeg');
             background-size: cover;
+            background-position: center;
             color: white;
         }
         button {
-            font-size: 20px;
             padding: 10px 20px;
-            margin: 20px;
-            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
         }
-        #translation {
-            font-size: 24px;
+        #output {
             margin-top: 20px;
+            font-size: 18px;
+        }
+        #textPreview {
+            margin-top: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            color: yellow;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px;
+            display: inline-block;
+            border-radius: 5px;
+        }
+        #audioPreview {
+            margin-top: 20px;
+            display: none;
         }
     </style>
 </head>
 <body>
-    <h1>Nature Sound Translator</h1>
-    <button id="recordBtn">🎙 Start Recording</button>
-    <p id="translation">Translation will appear here...</p>
-    
-    <script>
-    let mediaRecorder;
-    let audioChunks = [];
-    let backendURL = "https://nature-sound-translator.onrender.com"; // Replace with your actual Render backend URL
+    <h1>Audio to Binary to Text</h1>
+    <button id="start">▶ Start Recording</button>
+    <button id="stop" disabled>⏹ Stop Recording</button>
+    <button id="save" disabled>💾 Save Text</button>
+    <button id="downloadAudio" disabled>🎵 Download Audio</button>
+    <div id="output"></div>
+    <div id="textPreview">Converted Text: </div>
+    <audio id="audioPreview" controls></audio>
 
-    document.getElementById("recordBtn").addEventListener("click", async () => {
-        if (!mediaRecorder) {
-            let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
+    <script>
+        let audioContext, analyser, microphone, dataArray, mediaRecorder;
+        let recording = false;
+        let recordedText = "";
+        let audioChunks = [];
+
+        document.getElementById("start").addEventListener("click", async () => {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            microphone = audioContext.createMediaStreamSource(stream);
+            recording = true;
             
-            mediaRecorder.ondataavailable = event => {
-                audioChunks.push(event.data);
-            };
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.start();
+            mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+
+            document.getElementById("start").disabled = true;
+            document.getElementById("stop").disabled = false;
+        });
+
+        document.getElementById("stop").addEventListener("click", () => {
+            recording = false;
+            document.getElementById("start").disabled = false;
+            document.getElementById("stop").disabled = true;
+            mediaRecorder.stop();
             
             mediaRecorder.onstop = async () => {
-                let audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                let formData = new FormData();
-                formData.append("audio", audioBlob);
+                const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+                const formData = new FormData();
+                formData.append("file", audioBlob, "recorded_audio.wav");
                 
-                let response = await fetch(backendURL + "/translate", { method: "POST", body: formData });
-                let result = await response.text();
-                document.getElementById("translation").innerText = result;
+                const response = await fetch("https://nature-sound-translator.onrender.com/upload", {
+                    method: "POST",
+                    body: formData
+                });
+                
+                const result = await response.json();
+                document.getElementById("textPreview").innerText = `Converted Text: ${result.translated_text}`;
             };
-        }
-        
-        if (mediaRecorder.state === "inactive") {
-            audioChunks = [];
-            mediaRecorder.start();
-            document.getElementById("recordBtn").innerText = "⏹ Stop Recording";
-        } else {
-            mediaRecorder.stop();
-            document.getElementById("recordBtn").innerText = "🎙 Start Recording";
-        }
-    });
+        });
     </script>
 </body>
 </html>
-

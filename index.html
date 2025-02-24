@@ -1,0 +1,65 @@
+<!DOCTYPE html><html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nature Sound Translator</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            background-image: url('background.jpg');
+            background-size: cover;
+            color: white;
+        }
+        button {
+            font-size: 20px;
+            padding: 10px 20px;
+            margin: 20px;
+            cursor: pointer;
+        }
+        #translation {
+            font-size: 24px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Nature Sound Translator</h1>
+    <button id="recordBtn">🎙 Start Recording</button>
+    <p id="translation">Translation will appear here...</p><script>
+    let mediaRecorder;
+    let audioChunks = [];
+
+    document.getElementById("recordBtn").addEventListener("click", async () => {
+        if (!mediaRecorder) {
+            let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+            
+            mediaRecorder.onstop = async () => {
+                let audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                let formData = new FormData();
+                formData.append("audio", audioBlob);
+                
+                let response = await fetch("/translate", { method: "POST", body: formData });
+                let result = await response.text();
+                document.getElementById("translation").innerText = result;
+            };
+        }
+        
+        if (mediaRecorder.state === "inactive") {
+            audioChunks = [];
+            mediaRecorder.start();
+            document.getElementById("recordBtn").innerText = "⏹ Stop Recording";
+        } else {
+            mediaRecorder.stop();
+            document.getElementById("recordBtn").innerText = "🎙 Start Recording";
+        }
+    });
+</script>
+
+</body>
+  </html>

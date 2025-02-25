@@ -1,10 +1,13 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS  # Added CORS support
 import librosa
 import numpy as np
 import os
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for frontend communication
+
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER

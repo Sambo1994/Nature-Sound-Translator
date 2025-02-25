@@ -44,6 +44,11 @@
             display: none;
             margin-top: 10px;
         }
+        #processingMessage {
+            display: none;
+            margin-top: 10px;
+            color: #007BFF;
+        }
     </style>
     <script>
         async function uploadAudio() {
@@ -52,6 +57,8 @@
             const progressBar = document.getElementById("progressBar");
             const progressBarInner = document.getElementById("progressBarInner");
             const spinner = document.getElementById("spinner");
+            const processingMessage = document.getElementById("processingMessage");
+            const resultDiv = document.getElementById("result");
             
             if (!fileInput.files.length) {
                 alert("Please select an audio file.");
@@ -65,6 +72,7 @@
             progressBar.style.display = "block";
             progressBarInner.style.width = "0%";
             spinner.style.display = "block";
+            resultDiv.innerText = ""; // Clear previous results
             
             const xhr = new XMLHttpRequest();
             xhr.open("POST", "http://localhost:5000/translate", true);
@@ -80,21 +88,31 @@
             xhr.onload = function() {
                 uploadButton.disabled = false;
                 spinner.style.display = "none";
+                progressBar.style.display = "none";
+                processingMessage.style.display = "none";
+                
                 if (xhr.status === 200) {
-                    const result = JSON.parse(xhr.responseText);
-                    document.getElementById("result").innerText = `Description: ${result.description}\nSpectral Centroid: ${result.spectral_centroid.toFixed(2)}\nZero-Crossing Rate: ${result.zero_crossing_rate.toFixed(4)}\nTempo: ${result.tempo.toFixed(2)}`;
+                    try {
+                        const result = JSON.parse(xhr.responseText);
+                        resultDiv.innerText = `Description: ${result.description}\nSpectral Centroid: ${result.spectral_centroid.toFixed(2)}\nZero-Crossing Rate: ${result.zero_crossing_rate.toFixed(4)}\nTempo: ${result.tempo.toFixed(2)}`;
+                    } catch (e) {
+                        resultDiv.innerText = "Error parsing response from the server.";
+                    }
                 } else {
-                    document.getElementById("result").innerText = "Error processing audio file: " + xhr.statusText;
+                    resultDiv.innerText = "Error processing audio file: " + xhr.statusText;
                 }
             };
             
             xhr.onerror = function() {
                 uploadButton.disabled = false;
                 spinner.style.display = "none";
-                document.getElementById("result").innerText = "Network error occurred.";
+                progressBar.style.display = "none";
+                processingMessage.style.display = "none";
+                resultDiv.innerText = "Network error occurred. Please check your connection.";
             };
             
             xhr.send(formData);
+            processingMessage.style.display = "block"; // Show processing message after upload
         }
     </script>
 </head>
@@ -104,7 +122,8 @@
     <br>
     <button id="uploadButton" onclick="uploadAudio()">Upload & Translate</button>
     <div id="progressBar"><div id="progressBarInner"></div></div>
-    <div id="spinner">🔄 Processing...</div>
+    <div id="spinner">🔄 Uploading...</div>
+    <div id="processingMessage">Processing audio file. Please wait...</div>
     <pre id="result"></pre>
 </body>
 </html>

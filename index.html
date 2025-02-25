@@ -4,9 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nature Sound Translator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #progressBar {
+            width: 100%;
+            background-color: #f3f3f3;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 10px;
+            display: none;
+        }
+        #progressBar div {
+            height: 20px;
+            width: 0%;
+            background-color: #4caf50;
+            text-align: center;
+            line-height: 20px;
+            color: white;
+        }
+        #spinner {
+            display: none;
+            margin-top: 10px;
+        }
+    </style>
     <script>
         async function uploadAudio() {
             const fileInput = document.getElementById("audioFile");
+            const uploadButton = document.getElementById("uploadButton");
+            const progressBar = document.getElementById("progressBar");
+            const progressBarInner = document.getElementById("progressBarInner");
+            const spinner = document.getElementById("spinner");
+            
             if (!fileInput.files.length) {
                 alert("Please select an audio file.");
                 return;
@@ -15,24 +61,50 @@
             const formData = new FormData();
             formData.append("audio", fileInput.files[0]);
             
-            try {
-                const response = await fetch("http://localhost:5000/translate", {
-                    method: "POST",
-                    body: formData
-                });
-                
-                const result = await response.json();
-                document.getElementById("result").innerText = `Description: ${result.description}\nSpectral Centroid: ${result.spectral_centroid.toFixed(2)}\nZero-Crossing Rate: ${result.zero_crossing_rate.toFixed(4)}\nTempo: ${result.tempo.toFixed(2)}`;
-            } catch (error) {
-                alert("Error processing audio file.");
-            }
+            uploadButton.disabled = true;
+            progressBar.style.display = "block";
+            progressBarInner.style.width = "0%";
+            spinner.style.display = "block";
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", "http://localhost:5000/translate", true);
+            
+            xhr.upload.onprogress = function(event) {
+                if (event.lengthComputable) {
+                    let percentComplete = (event.loaded / event.total) * 100;
+                    progressBarInner.style.width = percentComplete + "%";
+                    progressBarInner.innerText = Math.round(percentComplete) + "%";
+                }
+            };
+            
+            xhr.onload = function() {
+                uploadButton.disabled = false;
+                spinner.style.display = "none";
+                if (xhr.status === 200) {
+                    const result = JSON.parse(xhr.responseText);
+                    document.getElementById("result").innerText = `Description: ${result.description}\nSpectral Centroid: ${result.spectral_centroid.toFixed(2)}\nZero-Crossing Rate: ${result.zero_crossing_rate.toFixed(4)}\nTempo: ${result.tempo.toFixed(2)}`;
+                } else {
+                    document.getElementById("result").innerText = "Error processing audio file: " + xhr.statusText;
+                }
+            };
+            
+            xhr.onerror = function() {
+                uploadButton.disabled = false;
+                spinner.style.display = "none";
+                document.getElementById("result").innerText = "Network error occurred.";
+            };
+            
+            xhr.send(formData);
         }
     </script>
 </head>
 <body>
     <h2>Nature Sound Translator</h2>
     <input type="file" id="audioFile" accept="audio/*">
-    <button onclick="uploadAudio()">Upload & Translate</button>
+    <br>
+    <button id="uploadButton" onclick="uploadAudio()">Upload & Translate</button>
+    <div id="progressBar"><div id="progressBarInner"></div></div>
+    <div id="spinner">🔄 Processing...</div>
     <pre id="result"></pre>
 </body>
 </html>

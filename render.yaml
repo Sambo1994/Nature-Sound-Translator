@@ -3,6 +3,6 @@ services:
     name: nature-sound-translator
     env: python
     buildCommand: |
-      apt-get update && apt-get install -y libsndfile1 ffmpeg
+      apt-get update && apt-get install -y python3-distutils
       pip install -r requirements.txt
     startCommand: gunicorn app:app
